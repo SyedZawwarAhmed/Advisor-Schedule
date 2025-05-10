@@ -10,8 +10,8 @@ export function LoginButton({ size, ...props }: ButtonProps) {
         await signIn("google");
       }}
     >
-      <Button size={size} {...props}>
-        <button type="submit">Signin with Google</button>
+      <Button size={size} {...props} type="submit">
+        Signin with Google
       </Button>
     </form>
   );
