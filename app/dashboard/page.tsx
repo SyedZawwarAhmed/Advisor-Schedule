@@ -1,22 +1,32 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Calendar, Clock, Link2, Users } from "lucide-react"
-import Link from "next/link"
-import { UpcomingMeetings } from "@/components/upcoming-meetings"
-import { DashboardCalendar } from "@/components/dashboard-calendar"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Calendar, Clock, Link2, Users } from "lucide-react";
+import Link from "next/link";
+import { UpcomingMeetings } from "@/components/upcoming-meetings";
+import { DashboardCalendar } from "@/components/dashboard-calendar";
 
 export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">Manage your meetings and scheduling links</p>
+        <p className="text-muted-foreground">
+          Manage your meetings and scheduling links
+        </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Meetings</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Meetings
+            </CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -36,7 +46,9 @@ export default function DashboardPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Connected Calendars</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Connected Calendars
+            </CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -45,7 +57,9 @@ export default function DashboardPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Scheduling Windows</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Scheduling Windows
+            </CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -70,7 +84,9 @@ export default function DashboardPage() {
         <Card className="col-span-1">
           <CardHeader>
             <CardTitle>Upcoming Meetings</CardTitle>
-            <CardDescription>Your scheduled meetings for the next 7 days</CardDescription>
+            <CardDescription>
+              Your scheduled meetings for the next 7 days
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <UpcomingMeetings />
@@ -113,5 +129,5 @@ export default function DashboardPage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }

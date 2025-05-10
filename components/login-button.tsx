@@ -1,26 +1,18 @@
-"use client"
+import { Button, type ButtonProps } from "@/components/ui/button";
 
-import { useState } from "react"
-import { Button, type ButtonProps } from "@/components/ui/button"
-import { signIn } from "@/lib/auth"
+import { signIn } from "@/auth";
 
 export function LoginButton({ size, ...props }: ButtonProps) {
-  const [isLoading, setIsLoading] = useState(false)
-
-  const handleLogin = async () => {
-    setIsLoading(true)
-    try {
-      await signIn()
-    } catch (error) {
-      console.error("Login failed:", error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   return (
-    <Button onClick={handleLogin} disabled={isLoading} size={size} {...props}>
-      {isLoading ? "Signing in..." : "Sign in with Google"}
-    </Button>
-  )
+    <form
+      action={async () => {
+        "use server";
+        await signIn("google");
+      }}
+    >
+      <Button size={size} {...props}>
+        <button type="submit">Signin with Google</button>
+      </Button>
+    </form>
+  );
 }
