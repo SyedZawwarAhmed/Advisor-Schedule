@@ -1,3 +1,5 @@
+"use client"
+
 import {
   Card,
   CardContent,
@@ -10,8 +12,36 @@ import { Calendar, Clock, Link2, Users } from "lucide-react";
 import Link from "next/link";
 import { UpcomingMeetings } from "@/components/upcoming-meetings";
 import { DashboardCalendar } from "@/components/dashboard-calendar";
+import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
+
+type DashboardStats = {
+  totalMeetings: number;
+  activeLinks: number;
+  connectedCalendars: number;
+  schedulingWindows: number;
+}
 
 export default function DashboardPage() {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch('/api/dashboard/stats');
+        const data = await response.json();
+        setStats(data);
+      } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
   return (
     <div className="space-y-8">
       <div>
@@ -30,8 +60,14 @@ export default function DashboardPage() {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
-            <p className="text-xs text-muted-foreground">+2 from last week</p>
+            {loading ? (
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{stats?.totalMeetings || 0}</div>
+                <p className="text-xs text-muted-foreground">Total scheduled meetings</p>
+              </>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -40,8 +76,14 @@ export default function DashboardPage() {
             <Link2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">3</div>
-            <p className="text-xs text-muted-foreground">+1 from last week</p>
+            {loading ? (
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{stats?.activeLinks || 0}</div>
+                <p className="text-xs text-muted-foreground">Active scheduling links</p>
+              </>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -52,7 +94,14 @@ export default function DashboardPage() {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">2</div>
+            {loading ? (
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{stats?.connectedCalendars || 0}</div>
+                <p className="text-xs text-muted-foreground">Connected calendar accounts</p>
+              </>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -63,7 +112,14 @@ export default function DashboardPage() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">4</div>
+            {loading ? (
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{stats?.schedulingWindows || 0}</div>
+                <p className="text-xs text-muted-foreground">Active scheduling windows</p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>

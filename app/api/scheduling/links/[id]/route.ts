@@ -236,7 +236,7 @@ export async function DELETE(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   
-  const { id } = params;
+  const id = (await params).id;
   
   try {
     // Check if link exists and belongs to user

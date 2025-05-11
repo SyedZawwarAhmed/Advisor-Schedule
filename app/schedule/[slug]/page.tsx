@@ -1,13 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, use } from "react"
 import { BookingForm } from "@/components/booking-form"
 import { AvailableTimeSlots } from "@/components/available-time-slots"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
-export default function SchedulePage({ params }: { params: { slug: string } }) {
+export default function SchedulePage({ params }: { params: Promise<{ slug: string }> }) {
+  const resolvedParams = use(params)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [link, setLink] = useState<{
@@ -29,7 +30,7 @@ export default function SchedulePage({ params }: { params: { slug: string } }) {
         const endDate = new Date(new Date().setDate(new Date().getDate() + 7)).toISOString()
         
         const response = await fetch(
-          `/api/schedule/${params.slug}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`
+          `/api/schedule/${resolvedParams.slug}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`
         )
         
         const data = await response.json()
@@ -41,7 +42,7 @@ export default function SchedulePage({ params }: { params: { slug: string } }) {
         setLink({
           id: data.link.id || "unknown",
           name: data.link.name,
-          slug: params.slug,
+          slug: resolvedParams.slug,
           duration: data.link.duration,
           maxDaysInAdvance: data.link.maxDaysInAdvance || 30,
           questions: data.questions || []
@@ -56,7 +57,7 @@ export default function SchedulePage({ params }: { params: { slug: string } }) {
     }
     
     fetchLinkDetails()
-  }, [params.slug])
+  }, [resolvedParams.slug])
 
   const handleTimeSelect = (time: Date | null) => {
     setSelectedTime(time)

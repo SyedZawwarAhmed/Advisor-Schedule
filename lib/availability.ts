@@ -13,24 +13,18 @@ export const getAvailableTimeSlots = async (
   userId: string,
   startDate: Date,
   endDate: Date,
-  durationMinutes: number,
-  schedulingWindowIds?: string[]
+  durationMinutes: number
 ) => {
-  // Get user's scheduling windows
-  const schedulingWindowsQuery = {
+  // Get user's active scheduling windows
+  const schedulingWindows = await prisma.schedulingWindow.findMany({
     where: {
       userId,
       isActive: true,
-      ...(schedulingWindowIds && schedulingWindowIds.length > 0
-        ? { id: { in: schedulingWindowIds } }
-        : {}),
     },
     include: {
       timeSlots: true,
     },
-  };
-
-  const schedulingWindows = await prisma.schedulingWindow.findMany(schedulingWindowsQuery);
+  });
 
   if (schedulingWindows.length === 0) {
     return [];
@@ -74,7 +68,7 @@ export const getAvailableTimeSlots = async (
           milliseconds: 0,
         });
         
-        // Create 30-minute increments for the day
+        // Create time slots based on the meeting duration
         while (add(slotStart, { minutes: durationMinutes }) <= slotEnd) {
           const timeSlotEnd = add(slotStart, { minutes: durationMinutes });
           
@@ -87,7 +81,7 @@ export const getAvailableTimeSlots = async (
           }
           
           // Move to next increment
-          slotStart = add(slotStart, { minutes: 30 });
+          slotStart = add(slotStart, { minutes: durationMinutes });
         }
       }
     }

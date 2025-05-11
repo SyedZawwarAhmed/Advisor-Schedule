@@ -29,9 +29,8 @@ const bookingSchema = z.object({
 // GET - Get available time slots for a scheduling link
 export async function GET(
   request: Request,
-  { params }: { params: { slug: string } }
+  context: { params: { slug: string } }
 ) {
-  const { slug } = params;
   const url = new URL(request.url);
   const startDate = url.searchParams.get('startDate');
   const endDate = url.searchParams.get('endDate');
@@ -47,7 +46,7 @@ export async function GET(
     }
     
     // Validate scheduling link
-    const { valid, link, reason } = await validateSchedulingLink(slug);
+    const { valid, link, reason } = await validateSchedulingLink(context.params.slug);
     
     if (!valid || !link) {
       return NextResponse.json(
@@ -101,13 +100,11 @@ export async function GET(
 // POST - Book a meeting
 export async function POST(
   request: Request,
-  { params }: { params: { slug: string } }
+  context: { params: { slug: string } }
 ) {
-  const { slug } = params;
-  
   try {
     // Validate scheduling link
-    const { valid, link, reason } = await validateSchedulingLink(slug);
+    const { valid, link, reason } = await validateSchedulingLink(context.params.slug);
     
     if (!valid || !link) {
       return NextResponse.json(
@@ -167,7 +164,7 @@ export async function POST(
         startTime: meetingStartTime,
         endTime: meetingEndTime,
         clientEmail,
-        clientLinkedIn,
+        clientLinkedIn: clientLinkedIn || undefined,
         linkedInSummary,
         status: 'scheduled',
       },
@@ -239,7 +236,7 @@ export async function POST(
       await sendMeetingNotificationEmail({
         advisorEmail: advisor.email,
         clientEmail,
-        clientLinkedIn,
+        clientLinkedIn: clientLinkedIn || undefined,
         meetingTime: meetingStartTime,
         meetingName: link.name,
         duration: link.duration,
@@ -248,52 +245,6 @@ export async function POST(
       });
     } catch (emailError) {
       console.error('Failed to send notification email:', emailError);
-      // Continue with the process even if email fails
-    }
-    
-    // Find the user's calendar accounts to create a calendar event
-    const calendarAccounts = await prisma.calendarAccount.findMany({
-      where: {
-        userId: link.userId,
-      },
-    });
-    
-    // Create calendar event if calendar accounts exist
-    if (calendarAccounts.length > 0) {
-      const primaryAccount = calendarAccounts[0]; // Use the first account
-      
-      try {
-        // Create a nice description with the answers
-        let description = `Meeting scheduled with ${clientEmail}\n\n`;
-        
-        if (clientLinkedIn) {
-          description += `LinkedIn: ${clientLinkedIn}\n\n`;
-        }
-        
-        description += 'Responses:\n';
-        
-        for (const answer of answers) {
-          const question = await prisma.question.findUnique({
-            where: { id: answer.questionId },
-          });
-          
-          if (question) {
-            description += `Q: ${question.text}\nA: ${answer.text}\n\n`;
-          }
-        }
-        
-        // Create the event
-        await createCalendarEvent(primaryAccount.id, {
-          summary: `${link.name} with ${clientEmail}`,
-          description,
-          start: meetingStartTime,
-          end: meetingEndTime,
-          attendees: [{ email: clientEmail }],
-        });
-      } catch (calendarError) {
-        console.error('Error creating calendar event:', calendarError);
-        // Continue with the process even if calendar event creation fails
-      }
     }
     
     return NextResponse.json({

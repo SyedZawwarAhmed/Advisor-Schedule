@@ -35,6 +35,7 @@ export function AvailableTimeSlots({ slug, onTimeSelect }: AvailableTimeSlotsPro
       )
       
       const data = await response.json()
+      console.log("🚀 ~ fetchAvailableSlots ~ data:", data)
       
       if (!response.ok) {
         throw new Error(data.error || 'Failed to fetch available time slots')
@@ -50,7 +51,8 @@ export function AvailableTimeSlots({ slug, onTimeSelect }: AvailableTimeSlotsPro
       }
       
       // Convert ISO strings to Date objects
-      const slots = data.availableSlots.map((slot: string) => new Date(slot))
+      const slots = data.availableSlots.map((slot: { start: string, end: string }) => new Date(slot.start))
+      console.log("🚀 ~ fetchAvailableSlots ~ slots:", slots)
       setAvailableTimeSlots(slots)
     } catch (error) {
       console.error('Error fetching available slots:', error)
