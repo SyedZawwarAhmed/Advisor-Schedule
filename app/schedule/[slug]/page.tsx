@@ -1,44 +1,84 @@
+"use client"
+
+import { useState, useEffect } from "react"
 import { BookingForm } from "@/components/booking-form"
 import { AvailableTimeSlots } from "@/components/available-time-slots"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-
-// This would be a database lookup in a real implementation
-const getSchedulingLink = (slug: string) => {
-  const links = [
-    {
-      id: "1",
-      name: "Initial Consultation",
-      slug: "initial-consultation",
-      duration: 30,
-      maxDaysInAdvance: 30,
-      questions: [
-        { id: "q1", text: "What are your financial goals?" },
-        { id: "q2", text: "What concerns do you have?" },
-      ],
-    },
-    {
-      id: "2",
-      name: "Portfolio Review",
-      slug: "portfolio-review",
-      duration: 60,
-      maxDaysInAdvance: 14,
-      questions: [{ id: "q1", text: "What is your current portfolio allocation?" }],
-    },
-  ]
-
-  return links.find((link) => link.slug === slug)
-}
+import { Loader2 } from "lucide-react"
+import { toast } from "sonner"
 
 export default function SchedulePage({ params }: { params: { slug: string } }) {
-  const link = getSchedulingLink(params.slug)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [link, setLink] = useState<{
+    id: string
+    name: string
+    slug: string
+    duration: number
+    maxDaysInAdvance: number
+    questions: { id: string, text: string }[]
+  } | null>(null)
+  const [selectedTime, setSelectedTime] = useState<Date | null>(null)
 
-  if (!link) {
+  useEffect(() => {
+    const fetchLinkDetails = async () => {
+      setLoading(true)
+      try {
+        // Get the first available date to fetch initial data
+        const startDate = new Date().toISOString()
+        const endDate = new Date(new Date().setDate(new Date().getDate() + 7)).toISOString()
+        
+        const response = await fetch(
+          `/api/schedule/${params.slug}?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`
+        )
+        
+        const data = await response.json()
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to fetch scheduling link')
+        }
+        
+        setLink({
+          id: data.link.id || "unknown",
+          name: data.link.name,
+          slug: params.slug,
+          duration: data.link.duration,
+          maxDaysInAdvance: data.link.maxDaysInAdvance || 30,
+          questions: data.questions || []
+        })
+      } catch (error) {
+        console.error('Error fetching scheduling link:', error)
+        setError('This scheduling link is not available or has been removed')
+        toast.error('Failed to load scheduling link')
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    fetchLinkDetails()
+  }, [params.slug])
+
+  const handleTimeSelect = (time: Date | null) => {
+    setSelectedTime(time)
+  }
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  if (error || !link) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Link Not Found</CardTitle>
-            <CardDescription>The scheduling link you're looking for doesn't exist or has been removed.</CardDescription>
+            <CardDescription>
+              {error || "The scheduling link you're looking for doesn't exist or has been removed."}
+            </CardDescription>
           </CardHeader>
         </Card>
       </div>
@@ -54,8 +94,15 @@ export default function SchedulePage({ params }: { params: { slug: string } }) {
         </CardHeader>
         <CardContent>
           <div className="grid gap-6 md:grid-cols-2">
-            <AvailableTimeSlots duration={link.duration} maxDaysInAdvance={link.maxDaysInAdvance} />
-            <BookingForm questions={link.questions} />
+            <AvailableTimeSlots 
+              slug={link.slug} 
+              onTimeSelect={handleTimeSelect} 
+            />
+            <BookingForm 
+              questions={link.questions} 
+              slug={link.slug}
+              selectedTime={selectedTime} 
+            />
           </div>
         </CardContent>
       </Card>

@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { Plus, Trash2 } from "lucide-react"
+import { Plus, Trash2, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
@@ -23,10 +24,11 @@ export function CreateSchedulingWindowForm() {
   const router = useRouter()
   const [name, setName] = useState("")
   const [isActive, setIsActive] = useState(true)
-  const [slots, setSlots] = useState([{ day: "Monday", startTime: "09:00", endTime: "17:00" }])
+  const [slots, setSlots] = useState([{ dayOfWeek: "Monday", startTime: "09:00", endTime: "17:00" }])
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const addSlot = () => {
-    setSlots([...slots, { day: "Monday", startTime: "09:00", endTime: "17:00" }])
+    setSlots([...slots, { dayOfWeek: "Monday", startTime: "09:00", endTime: "17:00" }])
   }
 
   const removeSlot = (index: number) => {
@@ -39,11 +41,38 @@ export function CreateSchedulingWindowForm() {
     setSlots(newSlots)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // In a real implementation, this would save the scheduling window
-    console.log({ name, isActive, slots })
-    router.push("/dashboard/windows")
+    setIsSubmitting(true)
+
+    try {
+      const response = await fetch('/api/scheduling/windows', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          isActive,
+          timeSlots: slots,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create scheduling window')
+      }
+
+      toast.success('Scheduling window created successfully')
+      router.push("/dashboard/windows")
+      router.refresh() // Refresh the page to show the updated data
+    } catch (error) {
+      console.error('Error creating scheduling window:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to create scheduling window')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -79,7 +108,7 @@ export function CreateSchedulingWindowForm() {
           <div key={index} className="grid gap-4 p-4 border rounded-lg">
             <div className="grid gap-2">
               <Label>Day of Week</Label>
-              <Select value={slot.day} onValueChange={(value) => updateSlot(index, "day", value)}>
+              <Select value={slot.dayOfWeek} onValueChange={(value) => updateSlot(index, "dayOfWeek", value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select day" />
                 </SelectTrigger>
@@ -144,10 +173,24 @@ export function CreateSchedulingWindowForm() {
       </div>
 
       <div className="flex justify-end space-x-4">
-        <Button type="button" variant="outline" onClick={() => router.push("/dashboard/windows")}>
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={() => router.push("/dashboard/windows")}
+          disabled={isSubmitting}
+        >
           Cancel
         </Button>
-        <Button type="submit">Save Window</Button>
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            'Save Window'
+          )}
+        </Button>
       </div>
     </form>
   )

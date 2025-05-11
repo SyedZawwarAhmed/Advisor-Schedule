@@ -11,10 +11,11 @@ import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { CalendarIcon, Plus, Trash2 } from "lucide-react"
+import { CalendarIcon, Plus, Trash2, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { format } from "date-fns"
+import { format, isValid } from "date-fns"
 import { cn } from "@/lib/utils"
+import { toast } from "sonner"
 
 export function CreateSchedulingLinkForm() {
   const router = useRouter()
@@ -27,19 +28,21 @@ export function CreateSchedulingLinkForm() {
   const [usageLimit, setUsageLimit] = useState("10")
   const [hasExpirationDate, setHasExpirationDate] = useState(false)
   const [expirationDate, setExpirationDate] = useState<Date | undefined>(undefined)
-  const [questions, setQuestions] = useState([{ id: "1", text: "What are your financial goals?" }])
+  const [questions, setQuestions] = useState([{ id: "", text: "What are your financial goals?" }])
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const addQuestion = () => {
-    const newId = (Number.parseInt(questions[questions.length - 1]?.id || "0") + 1).toString()
-    setQuestions([...questions, { id: newId, text: "" }])
+    setQuestions([...questions, { id: "", text: "" }])
   }
 
-  const removeQuestion = (id: string) => {
-    setQuestions(questions.filter((q) => q.id !== id))
+  const removeQuestion = (index: number) => {
+    setQuestions(questions.filter((_, i) => i !== index))
   }
 
-  const updateQuestion = (id: string, text: string) => {
-    setQuestions(questions.map((q) => (q.id === id ? { ...q, text } : q)))
+  const updateQuestion = (index: number, text: string) => {
+    const newQuestions = [...questions]
+    newQuestions[index] = { ...newQuestions[index], text }
+    setQuestions(newQuestions)
   }
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -50,24 +53,68 @@ export function CreateSchedulingLinkForm() {
       value
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, ""),
+        .replace(/^-|-$/g, "")
     )
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // In a real implementation, this would save the scheduling link
-    console.log({
-      name,
-      slug,
-      isActive,
-      duration,
-      maxDaysInAdvance,
-      usageLimit: hasUsageLimit ? Number.parseInt(usageLimit) : null,
-      expirationDate: hasExpirationDate ? expirationDate : null,
-      questions,
-    })
-    router.push("/dashboard/links")
+    setIsSubmitting(true)
+
+    try {
+      // Validate form data
+      if (!name || !slug) {
+        throw new Error('Name and URL slug are required')
+      }
+
+      if (hasUsageLimit && (!usageLimit || parseInt(usageLimit) <= 0)) {
+        throw new Error('Usage limit must be a positive number')
+      }
+
+      if (hasExpirationDate && !expirationDate) {
+        throw new Error('Expiration date is required when enabled')
+      }
+
+      if (questions.some(q => !q.text.trim())) {
+        throw new Error('All questions must have text')
+      }
+
+      // Create request payload
+      const payload = {
+        name,
+        slug,
+        isActive,
+        duration: parseInt(duration),
+        maxDaysInAdvance: parseInt(maxDaysInAdvance),
+        usageLimit: hasUsageLimit ? parseInt(usageLimit) : null,
+        expirationDate: hasExpirationDate && expirationDate ? expirationDate.toISOString() : null,
+        questions: questions.map(q => ({ text: q.text.trim() })),
+      }
+
+      // Submit to API
+      const response = await fetch('/api/scheduling/links', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create scheduling link')
+      }
+
+      toast.success('Scheduling link created successfully')
+      router.push("/dashboard/links")
+      router.refresh() // Refresh the page to show the updated data
+    } catch (error) {
+      console.error('Error creating scheduling link:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to create scheduling link')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -75,7 +122,14 @@ export function CreateSchedulingLinkForm() {
       <div className="space-y-4">
         <div className="grid gap-2">
           <Label htmlFor="name">Link Name</Label>
-          <Input id="name" placeholder="e.g., Initial Consultation" value={name} onChange={handleNameChange} required />
+          <Input 
+            id="name" 
+            placeholder="e.g., Initial Consultation" 
+            value={name} 
+            onChange={handleNameChange} 
+            required 
+            disabled={isSubmitting}
+          />
         </div>
 
         <div className="grid gap-2">
@@ -91,12 +145,18 @@ export function CreateSchedulingLinkForm() {
               onChange={(e) => setSlug(e.target.value)}
               required
               className="flex-1"
+              disabled={isSubmitting}
             />
           </div>
         </div>
 
         <div className="flex items-center space-x-2">
-          <Switch id="active" checked={isActive} onCheckedChange={setIsActive} />
+          <Switch 
+            id="active" 
+            checked={isActive} 
+            onCheckedChange={setIsActive}
+            disabled={isSubmitting}
+          />
           <Label htmlFor="active">Active</Label>
         </div>
       </div>
@@ -106,7 +166,11 @@ export function CreateSchedulingLinkForm() {
 
         <div className="grid gap-2">
           <Label htmlFor="duration">Meeting Duration (minutes)</Label>
-          <Select value={duration} onValueChange={setDuration}>
+          <Select 
+            value={duration} 
+            onValueChange={setDuration}
+            disabled={isSubmitting}
+          >
             <SelectTrigger id="duration">
               <SelectValue placeholder="Select duration" />
             </SelectTrigger>
@@ -122,7 +186,11 @@ export function CreateSchedulingLinkForm() {
 
         <div className="grid gap-2">
           <Label htmlFor="maxDaysInAdvance">Maximum Days in Advance</Label>
-          <Select value={maxDaysInAdvance} onValueChange={setMaxDaysInAdvance}>
+          <Select 
+            value={maxDaysInAdvance} 
+            onValueChange={setMaxDaysInAdvance}
+            disabled={isSubmitting}
+          >
             <SelectTrigger id="maxDaysInAdvance">
               <SelectValue placeholder="Select days" />
             </SelectTrigger>
@@ -142,7 +210,12 @@ export function CreateSchedulingLinkForm() {
 
         <div className="space-y-2">
           <div className="flex items-center space-x-2">
-            <Switch id="hasUsageLimit" checked={hasUsageLimit} onCheckedChange={setHasUsageLimit} />
+            <Switch 
+              id="hasUsageLimit" 
+              checked={hasUsageLimit} 
+              onCheckedChange={setHasUsageLimit}
+              disabled={isSubmitting}
+            />
             <Label htmlFor="hasUsageLimit">Limit number of uses</Label>
           </div>
 
@@ -156,6 +229,7 @@ export function CreateSchedulingLinkForm() {
                 value={usageLimit}
                 onChange={(e) => setUsageLimit(e.target.value)}
                 required={hasUsageLimit}
+                disabled={isSubmitting}
               />
             </div>
           )}
@@ -163,7 +237,12 @@ export function CreateSchedulingLinkForm() {
 
         <div className="space-y-2">
           <div className="flex items-center space-x-2">
-            <Switch id="hasExpirationDate" checked={hasExpirationDate} onCheckedChange={setHasExpirationDate} />
+            <Switch 
+              id="hasExpirationDate" 
+              checked={hasExpirationDate} 
+              onCheckedChange={setHasExpirationDate}
+              disabled={isSubmitting}
+            />
             <Label htmlFor="hasExpirationDate">Set expiration date</Label>
           </div>
 
@@ -177,11 +256,12 @@ export function CreateSchedulingLinkForm() {
                     variant="outline"
                     className={cn(
                       "w-full justify-start text-left font-normal",
-                      !expirationDate && "text-muted-foreground",
+                      !expirationDate && "text-muted-foreground"
                     )}
+                    disabled={isSubmitting}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {expirationDate ? format(expirationDate, "PPP") : "Select a date"}
+                    {expirationDate && isValid(expirationDate) ? format(expirationDate, "PPP") : "Select a date"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -202,23 +282,36 @@ export function CreateSchedulingLinkForm() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-medium">Questions</h3>
-          <Button type="button" variant="outline" size="sm" onClick={addQuestion}>
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm" 
+            onClick={addQuestion}
+            disabled={isSubmitting}
+          >
             <Plus className="mr-2 h-4 w-4" />
             Add Question
           </Button>
         </div>
 
         <div className="space-y-4">
-          {questions.map((question) => (
-            <div key={question.id} className="flex items-start gap-2">
+          {questions.map((question, index) => (
+            <div key={index} className="flex items-start gap-2">
               <Textarea
                 value={question.text}
-                onChange={(e) => updateQuestion(question.id, e.target.value)}
+                onChange={(e) => updateQuestion(index, e.target.value)}
                 placeholder="Enter your question"
                 className="flex-1"
+                disabled={isSubmitting}
               />
               {questions.length > 1 && (
-                <Button type="button" variant="ghost" size="icon" onClick={() => removeQuestion(question.id)}>
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => removeQuestion(index)}
+                  disabled={isSubmitting}
+                >
                   <Trash2 className="h-4 w-4" />
                 </Button>
               )}
@@ -228,10 +321,24 @@ export function CreateSchedulingLinkForm() {
       </div>
 
       <div className="flex justify-end space-x-4">
-        <Button type="button" variant="outline" onClick={() => router.push("/dashboard/links")}>
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={() => router.push("/dashboard/links")}
+          disabled={isSubmitting}
+        >
           Cancel
         </Button>
-        <Button type="submit">Create Link</Button>
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Creating...
+            </>
+          ) : (
+            'Create Link'
+          )}
+        </Button>
       </div>
     </form>
   )

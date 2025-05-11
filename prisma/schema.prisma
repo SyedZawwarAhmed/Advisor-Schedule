@@ -27,6 +27,13 @@ model User {
  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Add our custom relations
+  calendarAccounts   CalendarAccount[]
+  hubspotAccount     HubspotAccount?
+  schedulingWindows  SchedulingWindow[]
+  schedulingLinks    SchedulingLink[]
+  meetings           Meeting[]
 }
  
 model Account {
@@ -82,4 +89,139 @@ model Authenticator {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
  
   @@id([userId, credentialID])
+}
+
+// Calendar integration
+model CalendarAccount {
+  id                  String   @id @default(cuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider            String   // "google"
+  name                String
+  email               String
+  accessToken         String
+  refreshToken        String
+  expiresAt           DateTime
+  calendarId          String
+  calendarEvents      CalendarEvent[]
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model CalendarEvent {
+  id                  String   @id @default(cuid())
+  calendarAccountId   String
+  calendarAccount     CalendarAccount @relation(fields: [calendarAccountId], references: [id], onDelete: Cascade)
+  eventId             String   // Original ID from provider
+  title               String
+  description         String?
+  startTime           DateTime
+  endTime             DateTime
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+// HubSpot integration
+model HubspotAccount {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken         String
+  refreshToken        String
+  expiresAt           DateTime
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+// Scheduling windows
+model SchedulingWindow {
+  id                  String   @id @default(cuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                String
+  isActive            Boolean  @default(true)
+  timeSlots           TimeSlot[]
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model TimeSlot {
+  id                  String   @id @default(cuid())
+  schedulingWindowId  String
+  schedulingWindow    SchedulingWindow @relation(fields: [schedulingWindowId], references: [id], onDelete: Cascade)
+  dayOfWeek           String   // Monday, Tuesday, etc.
+  startTime           String   // HH:MM format
+  endTime             String   // HH:MM format
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+// Scheduling links
+model SchedulingLink {
+  id                  String   @id @default(cuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                String
+  slug                String   @unique
+  isActive            Boolean  @default(true)
+  duration            Int      // in minutes
+  maxDaysInAdvance    Int      // maximum days in advance for scheduling
+  usageLimit          Int?     // optional maximum number of uses
+  usageCount          Int      @default(0)
+  expirationDate      DateTime?
+  questions           Question[]
+  meetings            Meeting[]
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model Question {
+  id                  String   @id @default(cuid())
+  schedulingLinkId    String
+  schedulingLink      SchedulingLink @relation(fields: [schedulingLinkId], references: [id], onDelete: Cascade)
+  text                String
+  order               Int
+  answers             Answer[]
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+// Meetings
+model Meeting {
+  id                  String   @id @default(cuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  schedulingLinkId    String
+  schedulingLink      SchedulingLink @relation(fields: [schedulingLinkId], references: [id], onDelete: Cascade)
+  startTime           DateTime
+  endTime             DateTime
+  clientEmail         String
+  clientLinkedIn      String?
+  status              String   // "scheduled", "cancelled", "completed"
+  hubspotContactId    String?
+  linkedInSummary     String?
+  answers             Answer[]
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model Answer {
+  id                  String   @id @default(cuid())
+  meetingId           String
+  meeting             Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  questionId          String
+  question            Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  text                String
+  augmentedNote       String?
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 }

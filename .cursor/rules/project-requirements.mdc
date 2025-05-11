@@ -1,0 +1,35 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+These are the final project requirements
+A Calendly-like scheduling tool for advisors to meet with their clients.
+
+- I can log in with Google to the app and it pulls in my calendars events
+- I can connect more Google accounts to pull in more calendars’ events
+- I can connect my Hubspot CRM account (Oauth apps and a free testing account are self-serve)
+- I can create scheduling windows where I can add rows and each row has a start hour, end hour, and a weekday
+- I can create scheduling links. each link has the following settings:
+    - How many times it can be used to schedule (optional to the user)
+    - An expiration date (optional to the user)
+    - A form where I can configure any number of questions I want to ask when people schedule
+    - The length of the meeting in minutes
+    - The maximum number of days in advance that can be scheduled
+- When a user visits a scheduling link:
+    - They get an unauthenticated page that shows times available to schedule
+    - The client can pick an available time and then:
+        - It asks for their email address
+        - It asks for their LinkedIn username/url
+        - The custom questions appear with text areas where I can type in answers
+- After they schedule:
+    - I get an email telling me that someone scheduled:
+    - Find a contact in Hubspot that matches the email of the person who scheduled
+        - If no contact is found in Hubspot, then scrape their linkedin page for content (using AI if you want to)
+        - The answer to their question should be augmented using AI with any context from Hubspot or LinkedIn related to their answer. So if I ask “What concerns do you have” and they answer “My daughters wedding is going to be expensive” and Hubspot has a note attached to the contact including something like: “They are concerned about paying for their daughters college” the email might say:
+            
+            > My daughters wedding is going to be expensive
+            
+            Context: They said last time they were concerned about paying for her college
+            > 
+    - I can view the meeting in the app with the answers and the augmented note or linkedin summary
