@@ -128,14 +128,16 @@ export async function POST(request: Request) {
     // Create calendar event
     let calendarEventId = null
     try {
-      const calendarResult = await createCalendarEvent({
-        userId: link.userId,
-        summary: `${link.name} with ${clientEmail}`,
-        description: `Meeting booked via scheduling link: ${link.name}\n\n${enhancedAnswers.map(a => `Q: ${a.questionId}\nA: ${a.originalText}\n${a.enhancedText !== a.originalText ? `Context: ${a.enhancedText}` : ''}`).join('\n\n')}`,
-        startTime: start.toISOString(),
-        endTime: end.toISOString(),
-        attendeeEmail: clientEmail
-      })
+      const calendarResult = await createCalendarEvent(
+        link.userId,
+        {
+          summary: `${link.name} with ${clientEmail}`,
+          description: `Meeting booked via scheduling link: ${link.name}\n\n${enhancedAnswers.map(a => `Q: ${a.questionId}\nA: ${a.originalText}\n${a.enhancedText !== a.originalText ? `Context: ${a.enhancedText}` : ''}`).join('\n\n')}`,
+          start: start,
+          end: end,
+          attendees: [{ email: clientEmail }]
+        }
+      )
       calendarEventId = calendarResult.id
     } catch (error) {
       console.error("Error creating calendar event:", error)
@@ -198,12 +200,12 @@ export async function POST(request: Request) {
         meetingName: link.name,
         startTime: start,
         duration: link.duration
-      })
+      });
 
       const advisor = await prisma.user.findUnique({
         where: { id: link.userId },
         select: { email: true, name: true }
-      })
+      });
 
       if (advisor?.email) {
         await sendAdvisorNotification({
@@ -213,10 +215,10 @@ export async function POST(request: Request) {
           startTime: start,
           duration: link.duration,
           answers: enhancedAnswers
-        })
+        });
       }
     } catch (error) {
-      console.error("Error sending email notifications:", error)
+      console.error("Error sending email notifications:", error);
       // Continue without email notifications
     }
 
