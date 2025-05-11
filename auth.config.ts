@@ -8,6 +8,12 @@ declare module "next-auth" {
     refreshToken?: string;
     expiresAt?: number;
     provider?: string;
+    user?: {
+      id?: string;
+      name?: string;
+      email?: string;
+      image?: string;
+    };
   }
 }
 
@@ -17,6 +23,7 @@ declare module "next-auth/jwt" {
     refreshToken?: string;
     expiresAt?: number;
     provider?: string;
+    userId?: string;
   }
 }
 
@@ -36,13 +43,17 @@ export default {
     }),
   ],
   callbacks: {
-    async jwt({ token, account }) {
+    async jwt({ token, account, user }) {
       // Persist the OAuth access_token and refresh_token to the token right after signin
       if (account) {
         token.accessToken = account.access_token;
         token.refreshToken = account.refresh_token;
         token.expiresAt = account.expires_at;
         token.provider = account.provider;
+      }
+      // Add user id to token if available
+      if (user) {
+        token.userId = user.id;
       }
       return token;
     },
@@ -52,6 +63,14 @@ export default {
       session.refreshToken = token.refreshToken;
       session.expiresAt = token.expiresAt;
       session.provider = token.provider;
+      
+      // Make sure user is defined
+      if (!session.user) {
+        session.user = {};
+      }
+      
+      // Add user id to session
+      session.user.id = token.userId;
       
       return session;
     },
