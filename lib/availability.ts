@@ -15,6 +15,9 @@ export const getAvailableTimeSlots = async (
   endDate: Date,
   durationMinutes: number
 ) => {
+  console.log("🚀 ~ startDate:", startDate)
+  console.log("🚀 ~ endDate:", endDate)
+  console.log("🚀 ~ durationMinutes:", durationMinutes)
   // Get user's active scheduling windows
   const schedulingWindows = await prisma.schedulingWindow.findMany({
     where: {
@@ -25,6 +28,7 @@ export const getAvailableTimeSlots = async (
       timeSlots: true,
     },
   });
+  console.log("🚀 ~ schedulingWindows:", schedulingWindows)
 
   if (schedulingWindows.length === 0) {
     return [];

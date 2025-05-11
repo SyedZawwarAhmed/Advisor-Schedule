@@ -34,6 +34,14 @@ model User {
   schedulingWindows  SchedulingWindow[]
   schedulingLinks    SchedulingLink[]
   meetings           Meeting[]
+
+  // Email configuration
+  emailHost     String?
+  emailPort     Int?
+  emailSecure   Boolean?  @default(false)
+  emailUsername String?
+  emailPassword String?
+  emailFrom     String?
 }
  
 model Account {

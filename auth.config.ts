@@ -1,82 +1,79 @@
-import Google from "next-auth/providers/google";
-import type { NextAuthConfig } from "next-auth";
+import GoogleProvider from "next-auth/providers/google";
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import { prisma } from "@/prisma";
+import { User } from "./generated/prisma";
+import { JWT } from "next-auth/jwt";
+import { NextAuthConfig } from "next-auth";
 
 // Extend the session and JWT types
 declare module "next-auth" {
   interface Session {
-    accessToken?: string;
-    refreshToken?: string;
-    expiresAt?: number;
-    provider?: string;
-    user?: {
-      id?: string;
-      name?: string;
-      email?: string;
-      image?: string;
+    user: {
+      id: string;
+      email: string;
+      name: string;
+      role: string;
     };
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
-    accessToken?: string;
-    refreshToken?: string;
-    expiresAt?: number;
-    provider?: string;
-    userId?: string;
+    id: string;
+    role: string;
   }
 }
 
-export default {
+export const authConfig: NextAuthConfig = {
+  adapter: PrismaAdapter(prisma),
   providers: [
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      authorization: {
-        params: {
-          prompt: "consent",
-          access_type: "offline",
-          response_type: "code",
-          scope: "openid email profile",
-        },
-      },
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
   ],
   callbacks: {
-    async jwt({ token, account, user }) {
-      // Persist the OAuth access_token and refresh_token to the token right after signin
-      if (account) {
-        token.accessToken = account.access_token;
-        token.refreshToken = account.refresh_token;
-        token.expiresAt = account.expires_at;
-        token.provider = account.provider;
+    async signIn({ user, account }) {
+      if (account?.provider === "google" && user.email) {
+        try {
+          // Update user's email settings with Gmail configuration
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              emailHost: "smtp.gmail.com",
+              emailPort: 587,
+              emailSecure: false,
+              emailUsername: user.email,
+              emailPassword: account.access_token as string,
+              emailFrom: user.email,
+            },
+          });
+        } catch (error) {
+          console.error("Error setting up email configuration:", error);
+          // Continue with sign in even if email setup fails
+        }
       }
-      // Add user id to token if available
+      return true;
+    },
+    async jwt({ token, user }) {
       if (user) {
-        token.userId = user.id;
+        const typedUser = user as User;
+        token.id = typedUser.id;
       }
       return token;
     },
     async session({ session, token }) {
-      // Send properties to the client
-      session.accessToken = token.accessToken;
-      session.refreshToken = token.refreshToken;
-      session.expiresAt = token.expiresAt;
-      session.provider = token.provider;
-      
-      // Make sure user is defined
-      if (!session.user) {
-        session.user = {};
+      if (session.user) {
+        session.user.id = token.id;
+        session.user.role = token.role;
       }
-      
-      // Add user id to session
-      session.user.id = token.userId;
-      
       return session;
     },
   },
   pages: {
-    signIn: "/",
-    error: "/",
+    signIn: "/auth/signin",
   },
-} satisfies NextAuthConfig;
+  session: {
+    strategy: "jwt",
+  },
+};

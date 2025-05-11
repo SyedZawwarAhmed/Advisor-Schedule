@@ -36,7 +36,7 @@ const getGeminiModel = () => {
   ];
 
   return genAI.getGenerativeModel({
-    model: 'gemini-pro',
+    model: 'gemini-2.0-flash',
     generationConfig,
     safetySettings,
   });

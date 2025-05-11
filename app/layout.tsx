@@ -3,27 +3,31 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
+import { SessionProvider } from "next-auth/react"
+import { auth } from "@/auth"
+import type { Metadata } from "next"
+import ClientLayout from "@/components/client-layout";
 
 const inter = Inter({ subsets: ["latin"] })
 
-export const metadata = {
-  title: "Advisor Schedule",
-  description: "Schedule meetings with your advisor",
-    generator: 'v0.dev'
-}
-
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const session = await auth()
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          {children}
-          <Toaster />
-        </ThemeProvider>
+        <SessionProvider session={session}>
+          <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+            <ClientLayout>
+              {children}
+            </ClientLayout>
+            <Toaster />
+          </ThemeProvider>
+        </SessionProvider>
       </body>
     </html>
   )

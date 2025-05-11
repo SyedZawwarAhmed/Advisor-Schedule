@@ -1,18 +1,17 @@
 import nodemailer from 'nodemailer';
 import { format } from 'date-fns';
+import { prisma } from '@/prisma';
 
-// Configure email transporter
-const getTransporter = () => {
-  return nodemailer.createTransport({
-    host: process.env.EMAIL_SERVER_HOST,
-    port: Number(process.env.EMAIL_SERVER_PORT),
-    secure: Boolean(process.env.EMAIL_SERVER_SECURE),
-    auth: {
-      user: process.env.EMAIL_SERVER_USER,
-      pass: process.env.EMAIL_SERVER_PASSWORD,
-    },
-  });
-};
+// Create a transporter for Gmail
+const transporter = nodemailer.createTransport({
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASSWORD,
+  },
+});
 
 // Send confirmation email to client
 export const sendConfirmationEmail = async ({
@@ -26,12 +25,23 @@ export const sendConfirmationEmail = async ({
   startTime: Date;
   duration: number;
 }) => {
-  const transporter = getTransporter();
-  
   const endTime = new Date(startTime.getTime() + duration * 60000);
-  const formattedDate = format(startTime, 'EEEE, MMMM d, yyyy');
-  const formattedStartTime = format(startTime, 'h:mm a');
-  const formattedEndTime = format(endTime, 'h:mm a');
+  const formattedDate = startTime.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+  const formattedStartTime = startTime.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+  const formattedEndTime = endTime.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
   
   const subject = `Confirmation: ${meetingName} - ${formattedDate}`;
   
@@ -62,9 +72,9 @@ export const sendConfirmationEmail = async ({
       <p>Thank you!</p>
     </div>
   `;
-  
+
   await transporter.sendMail({
-    from: process.env.EMAIL_FROM,
+    from: process.env.EMAIL_USER,
     to,
     subject,
     text,
@@ -72,7 +82,7 @@ export const sendConfirmationEmail = async ({
   });
 };
 
-// Send notification to advisor with enhanced context
+// Send notification to advisor
 export const sendAdvisorNotification = async ({
   to,
   clientEmail,
@@ -92,12 +102,23 @@ export const sendAdvisorNotification = async ({
     enhancedText: string;
   }>;
 }) => {
-  const transporter = getTransporter();
-  
   const endTime = new Date(startTime.getTime() + duration * 60000);
-  const formattedDate = format(startTime, 'EEEE, MMMM d, yyyy');
-  const formattedStartTime = format(startTime, 'h:mm a');
-  const formattedEndTime = format(endTime, 'h:mm a');
+  const formattedDate = startTime.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+  const formattedStartTime = startTime.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+  const formattedEndTime = endTime.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
   
   const subject = `New Booking: ${meetingName} with ${clientEmail}`;
   
@@ -162,9 +183,9 @@ export const sendAdvisorNotification = async ({
       ${answersHtml}
     </div>
   `;
-  
+
   await transporter.sendMail({
-    from: process.env.EMAIL_FROM,
+    from: process.env.EMAIL_USER,
     to,
     subject,
     text,
