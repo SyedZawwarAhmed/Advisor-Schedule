@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import { Calendar, Link2, Clock, Settings, LogOut, Users, CalendarDays } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { signOut } from "@/lib/auth"
+import { signOutAction } from "@/app/actions/auth"
 
 export function Sidebar() {
   const pathname = usePathname()
@@ -69,7 +69,7 @@ export function Sidebar() {
         ))}
       </nav>
       <div className="p-4 border-t">
-        <form action={signOut}>
+        <form action={signOutAction}>
           <Button variant="outline" className="w-full justify-start" type="submit">
             <LogOut className="mr-2 h-4 w-4" />
             Sign out
