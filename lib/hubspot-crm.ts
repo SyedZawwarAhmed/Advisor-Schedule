@@ -72,7 +72,7 @@ export const addContactOrGetDetails = async ({
 LinkedIn Information:
 ${linkedInInfo.professionalSummary ? `Professional Summary: ${linkedInInfo.professionalSummary}` : ''}
 ${linkedInInfo.industryExperience ? `Industry Experience: ${linkedInInfo.industryExperience}` : ''}
-${linkedInInfo.likelyFinancialInterests ? `Financial Interests: ${linkedInInfo.likelyFinancialInterests}` : ''}
+${linkedInInfo.likelyFinancialInterests ? `Professional Interests: ${linkedInInfo.likelyFinancialInterests}` : ''}
         `;
         
         await addContactNote(accessToken, contact.id, infoNote);

@@ -61,7 +61,7 @@ export interface LinkedInScraperResponse {
   location?: string;
   professionalSummary?: string;
   industryExperience?: string;
-  likelyFinancialInterests?: string;
+  professionalInterests?: string;
   experiences?: string[];
   education?: string[];
   error?: string;

@@ -185,7 +185,7 @@ export const augmentAnswerWithContext = async ({
       : '';
     
     const prompt = `
-    You are an AI assistant that provides contextual enhancements to client responses for financial advisors.
+    You are an AI assistant that provides contextual enhancements to client responses.
     
     CLIENT'S QUESTION: "${question}"
     CLIENT'S ANSWER: "${answer}"
@@ -199,7 +199,7 @@ export const augmentAnswerWithContext = async ({
     
     ${linkedInContext}
     
-    Based on the client's answer and the available context, identify any relevant connections, insights or potential concerns.
+    Based on the client's answer and the available context, identify any relevant connections, insights or potential areas of interest.
     Format your response to start with "Context:" followed by a concise, professional note highlighting how the client's current answer relates to previously known information.
     
     If there's no meaningful connection between the answer and the context, just respond with "No relevant context found."

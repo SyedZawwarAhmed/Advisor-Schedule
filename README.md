@@ -1,6 +1,6 @@
 # Advisor Schedule Application
 
-A Calendly-like scheduling tool for financial advisors to meet with their clients.
+A Calendly-like scheduling tool for professional meetings and consultations.
 
 ## Setup
 
@@ -68,21 +68,16 @@ pnpm dev
 
 - Google login and calendar integration
 - HubSpot CRM integration
-- LinkedIn profile scraping
+- LinkedIn profile data integration
 - Scheduling windows with multiple time slots
 - Scheduling links with customizable settings
 - AI-enhanced client responses
 - Email notifications
 
-## LinkedIn Scraping Notes
+## LinkedIn Integration Notes
 
-The LinkedIn scraping functionality requires Puppeteer and its related packages:
+The LinkedIn integration functionality requires proper API setup:
 
-```bash
-npm install puppeteer puppeteer-extra puppeteer-extra-plugin-stealth @types/puppeteer
-```
-
-Note that LinkedIn's Terms of Service may restrict scraping. For production use, consider using:
 1. LinkedIn's official API (requires partner program approval)
 2. A third-party LinkedIn data provider
-3. Configuring a proxy system to avoid rate limiting 
+3. Proper OAuth2 configuration for authentication 

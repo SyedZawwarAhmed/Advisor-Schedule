@@ -47,11 +47,11 @@ export async function generateLinkedInFallback(linkedInUrl: string, email: strin
     Based on the LinkedIn profile URL: ${linkedInUrl}
     And email address: ${email}
     
-    Generate a brief professional summary that would be reasonable for a financial advisory client.
+    Generate a brief professional summary that would be relevant for a professional context.
     Include:
     - Professional background
     - Industry experience
-    - Likely financial interests or concerns
+    - Professional interests and focus areas
     
     Keep it concise and professional.
     `;
@@ -66,7 +66,7 @@ export async function generateLinkedInFallback(linkedInUrl: string, email: strin
       location: 'Unknown',
       professionalSummary: text || 'No professional summary available',
       industryExperience: 'Generated based on profile',
-      likelyFinancialInterests: 'Generated based on profile',
+      professionalInterests: 'Generated based on profile context',
       experiences: 'No experience information available',
       education: 'No education information available',
       source: 'ai-generated',
@@ -80,7 +80,7 @@ export async function generateLinkedInFallback(linkedInUrl: string, email: strin
       location: 'Unknown',
       professionalSummary: 'No LinkedIn information available',
       industryExperience: 'Unknown',
-      likelyFinancialInterests: 'General financial planning',
+      professionalInterests: 'General professional interests',
       experiences: 'No experience information available',
       education: 'No education information available',
       source: 'ai-generated',
