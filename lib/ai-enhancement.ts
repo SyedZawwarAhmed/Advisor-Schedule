@@ -1,19 +1,10 @@
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 import { prisma } from '@/prisma';
 import { findContactByEmail, getContactNotes } from './hubspot';
-import { scrapeLinkedInProfile, LinkedInScraperResponse } from './linkedin-scraper';
 import { generateLinkedInFallback } from './linkedin-fallback';
-import { LinkedInAPI } from './linkedin-api';
 
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY || '');
-
-// Initialize LinkedIn API client
-const linkedInAPI = new LinkedInAPI({
-  clientId: process.env.LINKEDIN_CLIENT_ID || '',
-  clientSecret: process.env.LINKEDIN_CLIENT_SECRET || '',
-  redirectUri: process.env.LINKEDIN_REDIRECT_URI || '',
-});
 
 // Configure the model
 const getGeminiModel = () => {
@@ -64,34 +55,12 @@ interface LinkedInInfoResult {
 // Extract information from LinkedIn URL
 export const extractLinkedInInfo = async (linkedInUrl: string, email: string = ''): Promise<LinkedInInfoResult> => {
   try {
-    // First try using the LinkedIn API
-    let linkedInData;
-    let usedFallback = false;
+    // Generate LinkedIn info using AI fallback
+    const linkedInData = await generateLinkedInFallback(linkedInUrl, email);
     
-    try {
-      // Use LinkedIn API
-      linkedInData = await linkedInAPI.getProfile(linkedInUrl);
-      console.log("🚀 ~ extractLinkedInInfo ~ linkedInData:", linkedInData)
-      
-      // Check if there's an error in the response
-      if (linkedInData.error) {
-        // API failed, try the fallback
-        console.log(`LinkedIn API failed: ${linkedInData.error}. Using fallback generation.`);
-        linkedInData = await generateLinkedInFallback(linkedInUrl, email);
-        console.log("🚀 ~ extractLinkedInInfo ~ linkedInData:", linkedInData)
-        usedFallback = true;
-      }
-    } catch (apiError) {
-      console.error('LinkedIn API error:', apiError);
-      // API failed with exception, use fallback
-      linkedInData = await generateLinkedInFallback(linkedInUrl, email);
-      console.log("🚀 ~ extractLinkedInInfo ~ linkedInData:", linkedInData)
-      usedFallback = true;
-    }
-
-    // If we still don't have valid data, return default values
+    // If we don't have valid data, return default values
     if (!linkedInData || ('error' in linkedInData && linkedInData.error)) {
-      console.error('Both LinkedIn API and fallback failed');
+      console.error('LinkedIn info generation failed');
       return {
         professionalSummary: 'Unable to extract professional summary from LinkedIn',
         industryExperience: 'Unknown',
@@ -100,31 +69,16 @@ export const extractLinkedInInfo = async (linkedInUrl: string, email: string = '
     }
     
     // Return formatted LinkedIn data
-    if (usedFallback) {
-      // We're returning fallback data
-      return {
-        name: linkedInData.name || 'Unknown',
-        headline: linkedInData.headline || 'Professional',
-        location: linkedInData.location || 'Unknown',
-        professionalSummary: linkedInData.professionalSummary || 'No professional summary available',
-        industryExperience: linkedInData.industryExperience || 'Unknown',
-        experiences: Array.isArray(linkedInData.experiences) ? linkedInData.experiences.join(', ') : 'No experience information available',
-        education: Array.isArray(linkedInData.education) ? linkedInData.education.join(', ') : 'No education information available',
-        source: 'ai-generated',
-      };
-    } else {
-      // Return the actual API data
-      return {
-        name: linkedInData.name,
-        headline: linkedInData.headline,
-        location: linkedInData.location,
-        professionalSummary: linkedInData.professionalSummary || 'No professional summary available',
-        industryExperience: linkedInData.industryExperience || 'Unknown industry',
-        experiences: Array.isArray(linkedInData.experiences) ? linkedInData.experiences.join(', ') : undefined,
-        education: Array.isArray(linkedInData.education) ? linkedInData.education.join(', ') : undefined,
-        source: 'linkedin-api',
-      };
-    }
+    return {
+      name: linkedInData.name || 'Unknown',
+      headline: linkedInData.headline || 'Professional',
+      location: linkedInData.location || 'Unknown',
+      professionalSummary: linkedInData.professionalSummary || 'No professional summary available',
+      industryExperience: linkedInData.industryExperience || 'Unknown',
+      experiences: Array.isArray(linkedInData.experiences) ? linkedInData.experiences.join(', ') : 'No experience information available',
+      education: Array.isArray(linkedInData.education) ? linkedInData.education.join(', ') : 'No education information available',
+      source: 'ai-generated',
+    };
   } catch (error) {
     console.error('Error extracting LinkedIn info:', error);
     return {
