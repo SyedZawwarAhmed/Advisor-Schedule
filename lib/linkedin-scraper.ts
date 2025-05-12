@@ -24,7 +24,8 @@ export async function scrapeLinkedInProfile(linkedInUrl: string): Promise<Linked
     }
     
     // Call the internal API route
-    const response = await fetch('/api/linkedin-scraper', {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const response = await fetch(`${baseUrl}/api/linkedin-scraper`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

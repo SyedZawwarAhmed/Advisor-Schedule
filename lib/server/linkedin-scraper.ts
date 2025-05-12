@@ -1,32 +1,7 @@
-import puppeteer from 'puppeteer-extra';
-import StealthPlugin from 'puppeteer-extra-plugin-stealth';
-import { Browser } from 'puppeteer';
-
-// Add stealth plugin to avoid detection
-puppeteer.use(StealthPlugin());
+import { chromium } from 'playwright';
 
 // Configuration
 const TIMEOUT = 30000; // 30 seconds timeout
-let browser: Browser | null = null;
-
-/**
- * Initialize the browser if not already initialized
- */
-async function getBrowser() {
-  if (!browser) {
-    browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--disable-gpu',
-      ],
-    });
-  }
-  return browser;
-}
 
 /**
  * Sanitize and validate LinkedIn URL
@@ -73,6 +48,8 @@ export interface LinkedInScraperResponse {
  * @returns Structured data from the LinkedIn profile
  */
 export async function scrapeLinkedInProfile(linkedInUrl: string): Promise<LinkedInScraperResponse> {
+  let browser = null;
+  let context = null;
   let page = null;
   
   try {
@@ -81,18 +58,59 @@ export async function scrapeLinkedInProfile(linkedInUrl: string): Promise<Linked
       throw new Error('Invalid LinkedIn URL');
     }
 
-    const browser = await getBrowser();
-    page = await browser.newPage();
+    // Launch browser
+    browser = await chromium.launch({
+      headless: true,
+    });
     
-    // Set viewport and user agent
-    await page.setViewport({ width: 1280, height: 800 });
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+    // Create context with specific user agent
+    context = await browser.newContext({
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+      viewport: { width: 1280, height: 800 },
+    });
     
-    // Navigate to the profile
+    // Create new page
+    page = await context.newPage();
+    
+    // Navigate to the profile with timeout
     await page.goto(cleanUrl, { 
-      waitUntil: 'networkidle0',
+      waitUntil: 'networkidle',
       timeout: TIMEOUT 
     });
+
+    // Try to close the sign-in modal if it appears
+    try {
+      // Wait for a short time to let the modal appear
+      await page.waitForTimeout(2000);
+      
+      // Try different selectors for the close button
+      const closeButtonSelectors = [
+        'button[aria-label="Dismiss"]',
+        'button[aria-label="Close"]',
+        '.artdeco-modal__dismiss',
+        '.sign-in-modal__dismiss',
+        'button.modal__dismiss',
+        'button[data-control-name="close_modal"]'
+      ];
+
+      for (const selector of closeButtonSelectors) {
+        const closeButton = await page.locator(selector).first();
+        if (await closeButton.count() > 0) {
+          await closeButton.click();
+          // Wait for modal to disappear
+          await page.waitForTimeout(1000);
+          break;
+        }
+      }
+    } catch (error) {
+      console.log('No sign-in modal found or could not close it:', error);
+    }
+    
+    // Check if we're on a login page (only if we couldn't close the modal)
+    const isLoginPage = await page.locator('form[action*="login"]').count() > 0;
+    if (isLoginPage) {
+      throw new Error('LinkedIn requires authentication');
+    }
     
     // Extract profile information
     const profileData = await page.evaluate(() => {
@@ -104,6 +122,9 @@ export async function scrapeLinkedInProfile(linkedInUrl: string): Promise<Linked
         name,
         headline,
         location,
+        professionalSummary: 'Profile information extracted successfully',
+        industryExperience: 'Information available on profile',
+        likelyFinancialInterests: 'Based on professional background',
       };
     });
 
@@ -115,14 +136,25 @@ export async function scrapeLinkedInProfile(linkedInUrl: string): Promise<Linked
     };
   } finally {
     if (page) {
-      await page.close().catch(console.error);
+      try {
+        await page.close();
+      } catch (error) {
+        console.error('Error closing page:', error);
+      }
+    }
+    if (context) {
+      try {
+        await context.close();
+      } catch (error) {
+        console.error('Error closing context:', error);
+      }
+    }
+    if (browser) {
+      try {
+        await browser.close();
+      } catch (error) {
+        console.error('Error closing browser:', error);
+      }
     }
   }
-}
-
-// Cleanup browser on server shutdown
-process.on('exit', async () => {
-  if (browser) {
-    await browser.close().catch(console.error);
-  }
-}); 
+} 

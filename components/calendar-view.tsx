@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
@@ -66,19 +66,51 @@ const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 export function CalendarView() {
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [view, setView] = useState("day")
-  const [selectedCalendars, setSelectedCalendars] = useState(connectedCalendars.map((cal) => cal.id))
+  const [selectedCalendars, setSelectedCalendars] = useState<string[]>([])
+  const [calendarAccounts, setCalendarAccounts] = useState<Array<{ id: string; name: string; color: string }>>([])
+  const [events, setEvents] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchCalendarAccounts = async () => {
+      try {
+        const response = await fetch('/api/integrations/google-calendar/accounts')
+        const data = await response.json()
+        setCalendarAccounts(data.accounts.map((account: any, index: number) => ({
+          id: account.id,
+          name: account.name,
+          color: `hsl(${index * 137.5 % 360}, 70%, 50%)` // Generate distinct colors
+        })))
+        setSelectedCalendars(data.accounts.map((account: any) => account.id))
+      } catch (error) {
+        console.error('Error fetching calendar accounts:', error)
+      }
+    }
+
+    const fetchEvents = async () => {
+      try {
+        const startDate = new Date(selectedDate)
+        startDate.setHours(0, 0, 0, 0)
+        const endDate = new Date(selectedDate)
+        endDate.setHours(23, 59, 59, 999)
+
+        const response = await fetch(`/api/integrations/google-calendar/events?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`)
+        const data = await response.json()
+        setEvents(data.events)
+      } catch (error) {
+        console.error('Error fetching events:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchCalendarAccounts()
+    fetchEvents()
+  }, [selectedDate])
 
   // Filter events based on selected calendars and date
-  const filteredEvents = mockEvents.filter((event) => {
-    const eventDate = new Date(event.start)
-    const selectedDateObj = new Date(selectedDate)
-
-    return (
-      selectedCalendars.includes(event.calendarId) &&
-      eventDate.getDate() === selectedDateObj.getDate() &&
-      eventDate.getMonth() === selectedDateObj.getMonth() &&
-      eventDate.getFullYear() === selectedDateObj.getFullYear()
-    )
+  const filteredEvents = events.filter((event) => {
+    return selectedCalendars.includes(event.calendarAccountId)
   })
 
   // Toggle calendar selection
@@ -107,16 +139,16 @@ export function CalendarView() {
 
   // Get event position and height based on time
   const getEventStyle = (event: any) => {
-    const startHour = new Date(event.start).getHours()
-    const startMinute = new Date(event.start).getMinutes()
-    const endHour = new Date(event.end).getHours()
-    const endMinute = new Date(event.end).getMinutes()
+    const startHour = new Date(event.startTime).getHours()
+    const startMinute = new Date(event.startTime).getMinutes()
+    const endHour = new Date(event.endTime).getHours()
+    const endMinute = new Date(event.endTime).getMinutes()
 
     const startPercentage = (startHour + startMinute / 60) * (100 / 24)
     const endPercentage = (endHour + endMinute / 60) * (100 / 24)
     const height = endPercentage - startPercentage
 
-    const calendar = connectedCalendars.find((cal) => cal.id === event.calendarId)
+    const calendar = calendarAccounts.find((cal) => cal.id === event.calendarAccountId)
     const backgroundColor = calendar?.color || "#3b82f6"
 
     return {
@@ -135,7 +167,7 @@ export function CalendarView() {
             <CardDescription>View and manage your schedule</CardDescription>
           </div>
           <div className="flex flex-wrap gap-2">
-            {connectedCalendars.map((calendar) => (
+            {calendarAccounts.map((calendar) => (
               <Badge
                 key={calendar.id}
                 variant={selectedCalendars.includes(calendar.id) ? "default" : "outline"}
@@ -181,36 +213,29 @@ export function CalendarView() {
       </CardHeader>
 
       <CardContent>
-        {view === "day" && (
-          <div className="custom-calendar">
-            <div className="day-header">
-              <div className="day-name">{daysOfWeek[selectedDate.getDay()]}</div>
-              <div className="day-date">{format(selectedDate, "d")}</div>
-            </div>
-
-            <div className="time-grid">
-              {timeSlots.map((timeSlot, index) => (
-                <div key={index} className="time-slot">
-                  <div className="time-label">{timeSlot}</div>
-                  <div className="time-cell"></div>
-                </div>
-              ))}
-
-              {filteredEvents.map((event) => (
-                <div key={event.id} className="calendar-event" style={getEventStyle(event)}>
-                  <div className="event-title">{event.title}</div>
-                  <div className="event-time">
-                    {format(new Date(event.start), "h:mm a")} - {format(new Date(event.end), "h:mm a")}
-                  </div>
-                </div>
-              ))}
-            </div>
+        {loading ? (
+          <div className="flex justify-center items-center h-[400px]">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
-        )}
-
-        {view !== "day" && (
-          <div className="flex items-center justify-center h-[600px] border rounded-md p-4">
-            <p className="text-muted-foreground">{view.charAt(0).toUpperCase() + view.slice(1)} view is coming soon.</p>
+        ) : (
+          <div className="relative h-[400px]">
+            {timeSlots.map((timeSlot, index) => (
+              <div key={index} className="absolute w-full border-t border-gray-200" style={{ top: `${(index * 100) / 24}%` }}>
+                <span className="absolute -left-16 text-sm text-gray-500">{timeSlot}</span>
+              </div>
+            ))}
+            {filteredEvents.map((event) => (
+              <div
+                key={event.id}
+                className="absolute left-0 right-0 mx-2 rounded p-2 text-sm text-white overflow-hidden"
+                style={getEventStyle(event)}
+              >
+                <div className="font-medium truncate">{event.title}</div>
+                <div className="text-xs opacity-90">
+                  {format(new Date(event.startTime), "h:mm a")} - {format(new Date(event.endTime), "h:mm a")}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </CardContent>

@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Calendar } from "lucide-react"
+import { Calendar, Plus } from "lucide-react"
 
 export function ConnectGoogleCalendarButton() {
   const [isConnecting, setIsConnecting] = useState(false)
@@ -10,10 +10,14 @@ export function ConnectGoogleCalendarButton() {
   const handleConnect = async () => {
     setIsConnecting(true)
     try {
-      // In a real implementation, this would redirect to Google OAuth
-      console.log("Connecting to Google Calendar...")
-      // Simulate a delay
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      const response = await fetch('/api/integrations/google-calendar/connect')
+      const data = await response.json()
+      
+      if (data.authUrl) {
+        window.location.href = data.authUrl
+      } else {
+        throw new Error('Failed to get authorization URL')
+      }
     } catch (error) {
       console.error("Failed to connect:", error)
     } finally {
@@ -23,8 +27,8 @@ export function ConnectGoogleCalendarButton() {
 
   return (
     <Button onClick={handleConnect} disabled={isConnecting}>
-      <Calendar className="mr-2 h-4 w-4" />
-      {isConnecting ? "Connecting..." : "Connect Google Calendar"}
+      <Plus className="mr-2 h-4 w-4" />
+      {isConnecting ? "Connecting..." : "Connect Another Calendar"}
     </Button>
   )
 }
