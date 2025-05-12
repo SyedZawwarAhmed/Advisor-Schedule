@@ -4,8 +4,8 @@ import { prisma } from '@/prisma';
 // Setup OAuth2 client for Google APIs
 export const getOAuth2Client = () => {
   return new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.AUTH_GOOGLE_ID,
+    process.env.AUTH_GOOGLE_SECRET,
     `${process.env.NEXTAUTH_URL}/api/auth/callback/google-calendar`
   );
 };

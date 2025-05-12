@@ -94,7 +94,7 @@ export async function sendMeetingNotificationEmail({
 
     // Send the email
     await transporter.sendMail({
-      from: `"Advisor Scheduling" <${process.env.EMAIL_USER}>`,
+      from: `"Advisor Schedule" <${process.env.EMAIL_USER}>`,
       to: advisorEmail,
       subject: `New Meeting: ${meetingName} with ${clientEmail}`,
       html: emailContent,

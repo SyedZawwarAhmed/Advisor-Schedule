@@ -1,4 +1,4 @@
-# Advisor Scheduling Application
+# Advisor Schedule Application
 
 A Calendly-like scheduling tool for financial advisors to meet with their clients.
 
@@ -15,8 +15,8 @@ NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="your_nextauth_secret_key"
 
 # Google OAuth for login
-GOOGLE_CLIENT_ID="your_google_client_id"
-GOOGLE_CLIENT_SECRET="your_google_client_secret"
+AUTH_GOOGLE_ID="your_AUTH_GOOGLE_ID"
+AUTH_GOOGLE_SECRET="your_AUTH_GOOGLE_SECRET"
 
 # Email Service
 EMAIL_SERVER_HOST="smtp.example.com"

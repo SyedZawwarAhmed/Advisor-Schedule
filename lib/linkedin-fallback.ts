@@ -36,7 +36,7 @@ export async function generateLinkedInFallback(linkedInUrl: string, email: strin
     ];
 
     const model = genAI.getGenerativeModel({
-      model: 'gemini-pro',
+      model: 'gemini-2.0-flash',
       generationConfig,
       safetySettings,
     });
@@ -44,77 +44,46 @@ export async function generateLinkedInFallback(linkedInUrl: string, email: strin
     const username = linkedInUrl.split('/').pop() || email.split('@')[0];
     
     const prompt = `
-    You are an AI that extracts professional information from LinkedIn profiles.
-    The goal is to provide a plausible professional summary based on limited information.
-    
-    For the LinkedIn profile with username/URL: ${linkedInUrl}
+    Based on the LinkedIn profile URL: ${linkedInUrl}
     And email address: ${email}
     
-    Generate a professional summary that would be reasonable for a financial advisory client.
-    Include these sections:
-    1. Professional background
-    2. Industry experience
-    3. Likely financial interests or concerns
+    Generate a brief professional summary that would be reasonable for a financial advisory client.
+    Include:
+    - Professional background
+    - Industry experience
+    - Likely financial interests or concerns
     
-    Format it as a structured JSON object with these keys: 
-    {
-      "name": "Likely full name based on username and email",
-      "headline": "Plausible job title",
-      "location": "City, State/Country",
-      "about": "Brief professional summary",
-      "professionalSummary": "Concise career overview",
-      "industryExperience": "Primary industry",
-      "likelyFinancialInterests": "Financial planning interests",
-      "experiences": [
-        {
-          "company": "Company name",
-          "title": "Job title",
-          "duration": "Time period"
-        }
-      ],
-      "education": [
-        {
-          "school": "University name",
-          "degree": "Degree type",
-          "fieldOfStudy": "Field",
-          "dates": "Year range"
-        }
-      ]
-    }
-    
-    Make the data realistic but generic, since we don't have actual information.
-    Respond ONLY with the JSON object, no additional text.
+    Keep it concise and professional.
     `;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
     
-    try {
-      const data = JSON.parse(text);
-      return {
-        ...data,
-        fallbackGenerated: true, // Mark this as generated data
-      };
-    } catch (error) {
-      console.error('Failed to parse AI-generated LinkedIn data:', error);
-      throw new Error('Invalid LinkedIn data format');
-    }
+    return {
+      name: username,
+      headline: 'Professional',
+      location: 'Unknown',
+      professionalSummary: text || 'No professional summary available',
+      industryExperience: 'Generated based on profile',
+      likelyFinancialInterests: 'Generated based on profile',
+      experiences: 'No experience information available',
+      education: 'No education information available',
+      source: 'ai-generated',
+    };
   } catch (error) {
     console.error('Error generating LinkedIn fallback:', error);
     
-    // Return very basic fallback if AI generation fails
     return {
       name: email.split('@')[0],
       headline: 'Professional',
       location: 'Unknown',
-      about: '',
       professionalSummary: 'No LinkedIn information available',
       industryExperience: 'Unknown',
       likelyFinancialInterests: 'General financial planning',
-      experiences: [],
-      education: [],
-      fallbackGenerated: true,
+      experiences: 'No experience information available',
+      education: 'No education information available',
+      source: 'ai-generated',
     };
   }
 } 

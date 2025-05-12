@@ -105,7 +105,8 @@ export async function POST(
 ) {
   try {
     // Validate scheduling link
-    const { valid, link, reason } = await validateSchedulingLink(context.params.slug);
+    const awaitedParams = await context.params
+    const { valid, link, reason } = await validateSchedulingLink(awaitedParams.slug);
     
     if (!valid || !link) {
       return NextResponse.json(

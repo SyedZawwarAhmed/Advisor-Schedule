@@ -8,6 +8,7 @@ export interface LinkedInScraperResponse {
   experiences?: string[];
   education?: string[];
   error?: string;
+  source?: string;
 }
 
 /**

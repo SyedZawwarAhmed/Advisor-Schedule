@@ -28,13 +28,25 @@ export const authConfig: NextAuthConfig = {
   adapter: PrismaAdapter(prisma),
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: process.env.AUTH_GOOGLE_ID!,
+      clientSecret: process.env.AUTH_GOOGLE_SECRET!,
+      // authorization: {
+      //   params: {
+      //     scope: [
+      //       'https://www.googleapis.com/auth/userinfo.email',
+      //       'https://www.googleapis.com/auth/userinfo.profile',
+      //       'https://www.googleapis.com/auth/calendar',
+      //       'https://www.googleapis.com/auth/calendar.events',
+      //     ].join(' '),
+      //     // access_type: 'offline',
+      //     // prompt: 'consent',
+      //   },
+      // },
     }),
   ],
   callbacks: {
     async signIn({ user, account }) {
-      if (account?.provider === "google" && user.email) {
+      if (account?.provider === "google" && user.email && user.id) {
         try {
           // Update user's email settings with Gmail configuration
           await prisma.user.update({
