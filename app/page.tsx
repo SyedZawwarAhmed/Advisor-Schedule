@@ -5,11 +5,9 @@ import { HeroSection } from "@/components/hero-section"
 export default function Home() {
   return (
     <div className="min-h-screen">
-      <header className="border-b">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-2 font-semibold">
-            <span className="text-xl">AdvisorSchedule</span>
-          </div>
+      <header className="border-b bg-white flex justify-center items-center">
+        <div className="container flex items-center justify-between h-20 py-2">
+          <span className="text-xl font-semibold mb-2">AdvisorSchedule</span>
           <nav className="flex items-center gap-4">
             <LoginButton />
           </nav>
