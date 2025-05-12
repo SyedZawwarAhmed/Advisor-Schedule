@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "api/**/*.js": {
+      "includeFiles": [
+        "node_modules/.prisma/**",
+        "node_modules/@prisma/client/**"
+      ]
+    }
+  }
+} 
