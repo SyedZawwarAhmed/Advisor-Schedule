@@ -21,6 +21,11 @@ const nextConfig = {
       },
     });
 
+    // Alias @prisma/client to generated/prisma
+    config.resolve = config.resolve || {};
+    config.resolve.alias = config.resolve.alias || {};
+    config.resolve.alias['@prisma/client'] = require('path').resolve(__dirname, 'generated/prisma');
+
     return config;
   },
 }
