@@ -159,11 +159,11 @@ export function SchedulingWindowsList() {
                   disabled={updatingWindowId === window.id}
                   onCheckedChange={() => toggleWindowActive(window)} 
                 />
-                <Link href={`/dashboard/windows/${window.id}/edit`}>
+                {/* <Link href={`/dashboard/windows/${window.id}/edit`}>
                   <Button variant="ghost" size="icon" disabled={updatingWindowId === window.id}>
                     <Edit className="h-4 w-4" />
                   </Button>
-                </Link>
+                </Link> */}
                 <Button 
                   variant="ghost" 
                   size="icon" 

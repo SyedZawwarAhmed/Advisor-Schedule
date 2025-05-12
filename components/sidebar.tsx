@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Calendar, Link2, Clock, Settings, LogOut, Users, CalendarDays } from "lucide-react"
+import { Calendar, Link2, Clock, Users, LogOut, CalendarDays, ClipboardList } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { signOutAction } from "@/app/actions/auth"
@@ -16,11 +16,11 @@ export function Sidebar() {
       href: "/dashboard",
       icon: Calendar,
     },
-    {
-      name: "Calendar",
-      href: "/dashboard/calendar",
-      icon: CalendarDays,
-    },
+    // {
+    //   name: "Calendar",
+    //   href: "/dashboard/calendar",
+    //   icon: CalendarDays,
+    // },
     {
       name: "Calendar Connections",
       href: "/dashboard/calendars",
@@ -37,14 +37,14 @@ export function Sidebar() {
       icon: Link2,
     },
     {
+      name: "Meetings",
+      href: "/dashboard/meetings",
+      icon: ClipboardList,
+    },
+    {
       name: "Integrations",
       href: "/dashboard/integrations",
       icon: Users,
-    },
-    {
-      name: "Settings",
-      href: "/dashboard/settings",
-      icon: Settings,
     },
   ]
 
@@ -67,15 +67,17 @@ export function Sidebar() {
             {route.name}
           </Link>
         ))}
-      </nav>
-      <div className="p-4 border-t">
         <form action={signOutAction}>
-          <Button variant="outline" className="w-full justify-start" type="submit">
-            <LogOut className="mr-2 h-4 w-4" />
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start text-red-500 hover:text-red-700 hover:bg-red-50 mt-1" 
+            type="submit"
+          >
+            <LogOut className="h-4 w-4 mr-3" />
             Sign out
           </Button>
         </form>
-      </div>
+      </nav>
     </div>
   )
 }
