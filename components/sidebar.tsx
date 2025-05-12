@@ -21,11 +21,11 @@ export function Sidebar() {
     //   href: "/dashboard/calendar",
     //   icon: CalendarDays,
     // },
-    {
-      name: "Calendar Connections",
-      href: "/dashboard/calendars",
-      icon: Calendar,
-    },
+    // {
+    //   name: "Calendar Connections",
+    //   href: "/dashboard/calendars",
+    //   icon: Calendar,
+    // },
     {
       name: "Scheduling Windows",
       href: "/dashboard/windows",
