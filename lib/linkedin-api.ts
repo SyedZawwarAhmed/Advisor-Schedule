@@ -116,7 +116,6 @@ export class LinkedInAPI {
         location: profile.location?.name.localized.en_US,
         professionalSummary: profile.headline?.localized.en_US || '',
         industryExperience: 'Unknown', // Not available in basic profile
-        likelyFinancialInterests: 'Unknown', // Not available in basic profile
         source: 'linkedin-api',
       };
     } catch (error) {

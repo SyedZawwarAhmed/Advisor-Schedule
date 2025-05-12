@@ -10,10 +10,14 @@ export function ConnectHubspotButton() {
   const handleConnect = async () => {
     setIsConnecting(true)
     try {
-      // In a real implementation, this would redirect to Hubspot OAuth
-      console.log("Connecting to Hubspot...")
-      // Simulate a delay
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      const response = await fetch('/api/integrations/hubspot/connect')
+      const data = await response.json()
+      
+      if (data.authUrl) {
+        window.location.href = data.authUrl
+      } else {
+        throw new Error('No auth URL received')
+      }
     } catch (error) {
       console.error("Failed to connect:", error)
     } finally {

@@ -4,7 +4,6 @@ export interface LinkedInScraperResponse {
   location?: string;
   professionalSummary?: string;
   industryExperience?: string;
-  likelyFinancialInterests?: string;
   experiences?: string[];
   education?: string[];
   error?: string;

@@ -22,24 +22,40 @@ type DashboardStats = {
   schedulingWindows: number;
 }
 
+type HubspotStatus = {
+  isConnected: boolean;
+  account: {
+    createdAt: string;
+    updatedAt: string;
+  } | null;
+}
+
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [hubspotStatus, setHubspotStatus] = useState<HubspotStatus | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch('/api/dashboard/stats');
-        const data = await response.json();
-        setStats(data);
+        const [statsResponse, hubspotResponse] = await Promise.all([
+          fetch('/api/dashboard/stats'),
+          fetch('/api/integrations/hubspot/status')
+        ]);
+        
+        const statsData = await statsResponse.json();
+        const hubspotData = await hubspotResponse.json();
+        
+        setStats(statsData);
+        setHubspotStatus(hubspotData);
       } catch (error) {
-        console.error('Error fetching dashboard stats:', error);
+        console.error('Error fetching dashboard data:', error);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
-    fetchStats();
+    fetchData();
   }, []);
 
   return (
@@ -60,7 +76,7 @@ export default function DashboardPage() {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {isLoading ? (
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             ) : (
               <>
@@ -76,7 +92,7 @@ export default function DashboardPage() {
             <Link2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {isLoading ? (
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             ) : (
               <>
@@ -94,7 +110,7 @@ export default function DashboardPage() {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {isLoading ? (
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             ) : (
               <>
@@ -112,7 +128,7 @@ export default function DashboardPage() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {isLoading ? (
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             ) : (
               <>
@@ -177,7 +193,16 @@ export default function DashboardPage() {
               <Link href="/dashboard/integrations">
                 <Button className="w-full" variant="outline">
                   <Users className="mr-2 h-4 w-4" />
-                  Connect Hubspot
+                  {isLoading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : hubspotStatus?.isConnected ? (
+                    <div className="flex items-center">
+                      <div className="h-2 w-2 rounded-full bg-green-500 mr-2" />
+                      Hubspot
+                    </div>
+                  ) : (
+                    "Connect Hubspot"
+                  )}
                 </Button>
               </Link>
             </div>

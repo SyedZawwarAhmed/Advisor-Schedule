@@ -58,7 +58,6 @@ class LinkedInProfile(BaseModel):
     skills: List[str]
     professionalSummary: str
     industryExperience: str
-    likelyFinancialInterests: str
 
 def extract_linkedin_data(url: str) -> Dict[str, Any]:
     """Scrape LinkedIn profile data using Playwright"""
@@ -223,7 +222,6 @@ def extract_linkedin_data(url: str) -> Dict[str, Any]:
                 "skills": skills,
                 "professionalSummary": professional_summary,
                 "industryExperience": industry_text,
-                "likelyFinancialInterests": interests_text
             }
         
         finally:

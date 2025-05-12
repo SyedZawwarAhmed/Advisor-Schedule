@@ -1,9 +1,39 @@
+"use client"
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, Calendar } from "lucide-react"
 import { ConnectHubspotButton } from "@/components/connect-hubspot-button"
+import { useEffect, useState } from "react"
+
+type HubspotStatus = {
+  isConnected: boolean;
+  account: {
+    createdAt: string;
+    updatedAt: string;
+  } | null;
+}
 
 export default function IntegrationsPage() {
+  const [hubspotStatus, setHubspotStatus] = useState<HubspotStatus | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchHubspotStatus = async () => {
+      try {
+        const response = await fetch('/api/integrations/hubspot/status');
+        const data = await response.json();
+        setHubspotStatus(data);
+      } catch (error) {
+        console.error('Error fetching HubSpot status:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchHubspotStatus();
+  }, []);
+
   return (
     <div className="space-y-8">
       <div>
@@ -43,8 +73,16 @@ export default function IntegrationsPage() {
           </CardHeader>
           <CardContent className="pb-3">
             <div className="flex items-center space-x-2">
-              <div className="h-2 w-2 rounded-full bg-gray-300" />
-              <span className="text-sm text-muted-foreground">Not connected</span>
+              {isLoading ? (
+                <span className="text-sm text-muted-foreground">Loading...</span>
+              ) : (
+                <>
+                  <div className={`h-2 w-2 rounded-full ${hubspotStatus?.isConnected ? 'bg-green-500' : 'bg-gray-300'}`} />
+                  <span className="text-sm text-muted-foreground">
+                    {hubspotStatus?.isConnected ? 'Connected' : 'Not connected'}
+                  </span>
+                </>
+              )}
             </div>
           </CardContent>
           <CardFooter>

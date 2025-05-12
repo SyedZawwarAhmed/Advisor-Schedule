@@ -56,7 +56,6 @@ interface LinkedInInfoResult {
   location?: string;
   professionalSummary: string;
   industryExperience: string;
-  likelyFinancialInterests: string;
   experiences?: string;
   education?: string;
   source: string;
@@ -96,7 +95,6 @@ export const extractLinkedInInfo = async (linkedInUrl: string, email: string = '
       return {
         professionalSummary: 'Unable to extract professional summary from LinkedIn',
         industryExperience: 'Unknown',
-        likelyFinancialInterests: 'Unknown',
         source: 'default',
       };
     }
@@ -110,7 +108,6 @@ export const extractLinkedInInfo = async (linkedInUrl: string, email: string = '
         location: linkedInData.location || 'Unknown',
         professionalSummary: linkedInData.professionalSummary || 'No professional summary available',
         industryExperience: linkedInData.industryExperience || 'Unknown',
-        likelyFinancialInterests: linkedInData.likelyFinancialInterests || 'General financial planning',
         experiences: Array.isArray(linkedInData.experiences) ? linkedInData.experiences.join(', ') : 'No experience information available',
         education: Array.isArray(linkedInData.education) ? linkedInData.education.join(', ') : 'No education information available',
         source: 'ai-generated',
@@ -123,7 +120,6 @@ export const extractLinkedInInfo = async (linkedInUrl: string, email: string = '
         location: linkedInData.location,
         professionalSummary: linkedInData.professionalSummary || 'No professional summary available',
         industryExperience: linkedInData.industryExperience || 'Unknown industry',
-        likelyFinancialInterests: linkedInData.likelyFinancialInterests || 'General financial planning',
         experiences: Array.isArray(linkedInData.experiences) ? linkedInData.experiences.join(', ') : undefined,
         education: Array.isArray(linkedInData.education) ? linkedInData.education.join(', ') : undefined,
         source: 'linkedin-api',
@@ -134,7 +130,6 @@ export const extractLinkedInInfo = async (linkedInUrl: string, email: string = '
     return {
       professionalSummary: 'Unable to extract professional summary from LinkedIn',
       industryExperience: 'Unknown',
-      likelyFinancialInterests: 'Unknown',
       source: 'error',
     };
   }
@@ -155,12 +150,27 @@ export const augmentAnswerWithContext = async ({
   try {
     let hubspotNotes: string[] = [];
     
+    // Debug logging
+    console.log("Augmenting answer with context:", {
+      hasContactInfo: !!contactInfo,
+      contactInfoKeys: contactInfo ? Object.keys(contactInfo) : [],
+      hasNotes: contactInfo?.notes ? true : false,
+      notesType: contactInfo?.notes ? typeof contactInfo.notes : 'none',
+      notesIsArray: Array.isArray(contactInfo?.notes)
+    });
+    
     // Extract notes from contact info if available
     if (contactInfo && contactInfo.notes) {
       hubspotNotes = Array.isArray(contactInfo.notes) 
         ? contactInfo.notes 
         : [contactInfo.notes];
     }
+    
+    // Debug logging for notes
+    console.log("Processed HubSpot notes:", {
+      notesCount: hubspotNotes.length,
+      notesContent: hubspotNotes
+    });
     
     // No context to augment with
     if (hubspotNotes.length === 0 && !linkedInInfo) {
@@ -178,14 +188,13 @@ export const augmentAnswerWithContext = async ({
          ${linkedInInfo.location ? `Location: ${linkedInInfo.location}` : ''}
          Professional Summary: ${linkedInInfo.professionalSummary || ''}
          Industry Experience: ${linkedInInfo.industryExperience || ''}
-         Financial Interests: ${linkedInInfo.likelyFinancialInterests || ''}
          ${linkedInInfo.experiences ? `Experience: ${linkedInInfo.experiences}` : ''}
          ${linkedInInfo.education ? `Education: ${linkedInInfo.education}` : ''}
          ${linkedInInfo.source ? `Source: ${linkedInInfo.source}` : ''}`
       : '';
     
     const prompt = `
-    You are an AI assistant that provides contextual enhancements to client responses.
+    You are an AI assistant that provides contextual enhancements to client responses for financial advisors.
     
     CLIENT'S QUESTION: "${question}"
     CLIENT'S ANSWER: "${answer}"
@@ -199,17 +208,22 @@ export const augmentAnswerWithContext = async ({
     
     ${linkedInContext}
     
-    Based on the client's answer and the available context, identify any relevant connections, insights or potential areas of interest.
+    Based on the client's answer and the available context, identify any relevant connections, insights or potential concerns.
     Format your response to start with "Context:" followed by a concise, professional note highlighting how the client's current answer relates to previously known information.
     
-    If there's no meaningful connection between the answer and the context, just respond with "No relevant context found."
+    If there's no meaningful connection between the answer and the context, return the original answer without any "Context:" prefix.
     `;
     
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const augmentedAnswer = response.text();
     
-    return augmentedAnswer === 'No relevant context found.' ? answer : augmentedAnswer;
+    // If the AI returned the original answer or "No relevant context found", return the original answer
+    if (augmentedAnswer === answer || augmentedAnswer.toLowerCase().includes('no relevant context found')) {
+      return answer;
+    }
+    
+    return augmentedAnswer;
   } catch (error) {
     console.error('Error augmenting answer with context:', error);
     return answer;

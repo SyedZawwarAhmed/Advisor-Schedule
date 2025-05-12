@@ -14,10 +14,10 @@ export async function GET(request: Request) {
     const redirectUri = `${process.env.NEXTAUTH_URL}/api/integrations/hubspot/callback`;
     const clientId = process.env.HUBSPOT_CLIENT_ID;
     
-    // Generate HubSpot OAuth URL
+    // Generate HubSpot OAuth URL with correct scopes
     const authUrl = `https://app.hubspot.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(
       redirectUri
-    )}&scope=crm.objects.contacts.read%20crm.objects.contacts.write%20crm.objects.notes.read%20crm.objects.notes.write`;
+    )}&scope=crm.objects.contacts.read%20crm.objects.contacts.write`;
     
     return NextResponse.json({ authUrl });
   } catch (error) {

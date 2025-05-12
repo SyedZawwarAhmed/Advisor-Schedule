@@ -6,6 +6,7 @@ import { add } from 'date-fns';
 import { extractLinkedInInfo, augmentAnswerWithContext } from '@/lib/ai-enhancement';
 import { createCalendarEvent } from '@/lib/google-calendar';
 import { sendMeetingNotificationEmail } from '@/lib/emails';
+import { getContactDetails } from '@/lib/hubspot-crm';
 
 // Validate available time slots request
 const availableTimeSlotsSchema = z.object({
@@ -147,17 +148,44 @@ export async function POST(
       );
     }
     
-    // Process LinkedIn profile if provided
-    let linkedInSummary = null;
-    if (clientLinkedIn) {
+    // First try to find contact in HubSpot
+    let contactInfo = null;
+    try {
+      contactInfo = await getContactDetails({
+        email: clientEmail
+      });
+      console.log("HubSpot contact search result:", contactInfo ? "Found" : "Not found");
+      if (contactInfo) {
+        console.log("Contact info structure:", {
+          hasId: !!contactInfo.id,
+          hasProperties: !!contactInfo.properties,
+          hasNotes: !!contactInfo.notes,
+          notesCount: contactInfo.notes?.length || 0
+        });
+      }
+    } catch (error) {
+      console.error("Error with HubSpot integration:", error);
+      // Continue without CRM integration
+    }
+
+    // Only process LinkedIn profile if no contact was found in HubSpot
+    let linkedInInfo = null;
+    if (!contactInfo && clientLinkedIn) {
       try {
-        const linkedInInfo = await extractLinkedInInfo(clientLinkedIn, clientEmail);
-        linkedInSummary = JSON.stringify(linkedInInfo);
+        linkedInInfo = await extractLinkedInInfo(clientLinkedIn, clientEmail);
+        
+        // Add logging to help debug LinkedIn extraction
+        console.log("LinkedIn extraction successful:", {
+          url: clientLinkedIn,
+          hasData: !!linkedInInfo,
+          dataFields: linkedInInfo ? Object.keys(linkedInInfo) : []
+        });
       } catch (error) {
-        console.error('Error extracting LinkedIn info:', error);
+        console.error("Error extracting LinkedIn info:", error);
+        // Continue without LinkedIn info
       }
     }
-    
+
     // Create the meeting
     const meeting = await prisma.meeting.create({
       data: {
@@ -167,7 +195,8 @@ export async function POST(
         endTime: meetingEndTime,
         clientEmail,
         clientLinkedIn: clientLinkedIn || undefined,
-        linkedInSummary,
+        linkedInSummary: linkedInInfo ? JSON.stringify(linkedInInfo) : null,
+        hubspotContactId: contactInfo?.id,
         status: 'scheduled',
       },
     });
@@ -200,8 +229,8 @@ export async function POST(
         const augmentedAnswer = await augmentAnswerWithContext({
           question: questionExists.text,
           answer: answer.text,
-          linkedInInfo: linkedInSummary ? JSON.parse(linkedInSummary) : undefined,
-          contactInfo: undefined // Will be fetched in the function
+          linkedInInfo: linkedInInfo,
+          contactInfo: contactInfo
         });
         
         // Save the answer
@@ -210,7 +239,7 @@ export async function POST(
             meetingId: meeting.id,
             questionId: answer.questionId,
             text: answer.text,
-            augmentedNote: augmentedAnswer,
+            augmentedNote: augmentedAnswer !== answer.text ? augmentedAnswer : null,
           },
         });
         

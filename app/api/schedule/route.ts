@@ -3,7 +3,7 @@ import { z } from "zod"
 import { prisma } from "@/prisma"
 import { validateSchedulingLink } from "@/lib/availability"
 import { createCalendarEvent } from "@/lib/google-calendar"
-import { addContactOrGetDetails, addMeetingNote } from "@/lib/hubspot-crm"
+import { getContactDetails  } from "@/lib/hubspot-crm"
 import { extractLinkedInInfo, augmentAnswerWithContext } from "@/lib/ai-enhancement"
 import { sendConfirmationEmail, sendAdvisorNotification } from "@/lib/email"
 
@@ -53,9 +53,20 @@ export async function POST(request: Request) {
     const start = new Date(startTime)
     const end = new Date(start.getTime() + link.duration * 60000)
 
-    // Process LinkedIn profile if provided
+    // First try to find contact in HubSpot
+    let contactInfo = null
+    try {
+      contactInfo = await getContactDetails({
+        email: clientEmail
+      })
+    } catch (error) {
+      console.error("Error with HubSpot integration:", error)
+      // Continue without CRM integration
+    }
+
+    // Only process LinkedIn profile if no contact was found in HubSpot
     let linkedInInfo = null
-    if (clientLinkedIn) {
+    if (!contactInfo && clientLinkedIn) {
       try {
         linkedInInfo = await extractLinkedInInfo(clientLinkedIn, clientEmail)
         
@@ -69,19 +80,6 @@ export async function POST(request: Request) {
         console.error("Error extracting LinkedIn info:", error)
         // Continue without LinkedIn info
       }
-    }
-
-    // Find or create contact in HubSpot
-    let contactInfo = null
-    try {
-      contactInfo = await addContactOrGetDetails({
-        email: clientEmail,
-        linkedInProfile: clientLinkedIn,
-        linkedInInfo
-      })
-    } catch (error) {
-      console.error("Error with HubSpot integration:", error)
-      // Continue without CRM integration
     }
 
     // Fetch the questions' full text first
@@ -174,24 +172,6 @@ export async function POST(request: Request) {
         }
       }
     })
-
-    // Add note to HubSpot contact
-    if (contactInfo?.id) {
-      try {
-        await addMeetingNote({
-          contactId: contactInfo.id,
-          meetingDetails: {
-            title: link.name,
-            startTime: start.toISOString(),
-            duration: link.duration
-          },
-          answers: enhancedAnswers
-        })
-      } catch (error) {
-        console.error("Error adding note to HubSpot:", error)
-        // Continue without adding note
-      }
-    }
 
     // Send confirmation emails
     try {
